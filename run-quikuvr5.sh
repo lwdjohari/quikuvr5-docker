@@ -482,6 +482,7 @@ cmd_validate() {
   ${DOCKER} run --rm \
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
+    -e GRADIO_SERVER_NAME=0.0.0.0 \
     "${vol_args[@]}" \
     "${IMAGE_NAME}" validate
 }
@@ -499,6 +500,7 @@ cmd_run() {
   ${DOCKER} run -it --rm \
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
+    -e GRADIO_SERVER_NAME=0.0.0.0 \
     -p "${UVR_PORT}:${UVR_PORT}" \
     "${vol_args[@]}" \
     --name "${CONTAINER_NAME}" \
@@ -521,6 +523,7 @@ cmd_start() {
   ${DOCKER} run -d \
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
+    -e GRADIO_SERVER_NAME=0.0.0.0 \
     -p "${UVR_PORT}:${UVR_PORT}" \
     "${vol_args[@]}" \
     --restart unless-stopped \

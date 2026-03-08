@@ -11,6 +11,11 @@ UVR_PY="${UVR_ENV}/bin/python"
 UVR_AUDIO_SEPARATOR="${UVR_ENV}/bin/audio-separator"
 PORT="${UVR_PORT:-7860}"
 
+# Gradio binds to 127.0.0.1 by default — unreachable from host via Docker port mapping.
+# Override to 0.0.0.0 so the UI is accessible. Compose also sets this, but this
+# fallback covers `docker run` without compose.
+export GRADIO_SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
+
 # -------- LOGGING HELPERS --------
 log()  { printf '[INFO]  %s\n' "$*"; }
 warn() { printf '[WARN]  %s\n' "$*" >&2; }
