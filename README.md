@@ -1,6 +1,6 @@
 # quikuvr5
 
-Production-ready Docker setup for [UVR5-UI](https://github.com/Eddycrack864/UVR5-UI) (Ultimate Vocal Remover 5 — Gradio WebUI).
+Production-ready Docker setup for [UVR5-UI](https://github.com/Eddycrack864/UVR5-UI) (Ultimate Vocal Remover 5 - Gradio WebUI).
 
 ## Features
 
@@ -12,13 +12,13 @@ Production-ready Docker setup for [UVR5-UI](https://github.com/Eddycrack864/UVR5
 - Graceful shutdown via `tini` init process
 - Health checks for orchestrator integration (300s start period for ML model loading)
 - Structured logging with rotation (50 MB × 5 files)
-- **Preflight audit** — checks all host deps and recommends fixes
+- **Preflight audit** - checks all host deps and recommends fixes
 - Supports both **rootless Docker** and **sudo docker** automatically
-- Configurable **bind address** — restrict to localhost or expose to LAN
+- Configurable **bind address** - restrict to localhost or expose to LAN
 - Optional **runtime import skip** for faster container startup
 - Precompiled Python bytecode for faster app launch
-- Minimal env leakage — only required vars passed into the container
-- **Git ref pinning** — lock builds to a specific tag, branch, or commit SHA
+- Minimal env leakage - only required vars passed into the container
+- **Git ref pinning** - lock builds to a specific tag, branch, or commit SHA
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ cd quikuvr5-docker
 
 # 2. Configure
 cp .env.example .env
-# Edit .env — set HOST_* paths, APP_UID/APP_GID, USE_GPU, etc.
+# Edit .env - set HOST_* paths, APP_UID/APP_GID, USE_GPU, etc.
 
 # 3. Run preflight check (recommended first time)
 ./run-quikuvr5.sh preflight
@@ -80,7 +80,7 @@ All configuration is done via the `.env` file. Copy `.env.example` and adjust:
 
 > **Important:** `APP_UID`/`APP_GID` are used instead of `UID`/`GID` because `$UID` is a read-only bash built-in.
 
-> **Important:** Do not use variable interpolation (e.g., `${HOST_BASE}/models`) in `.env` — Docker Compose does not support it.
+> **Important:** Do not use variable interpolation (e.g., `${HOST_BASE}/models`) in `.env` - Docker Compose does not support it.
 
 ## CLI Reference
 
@@ -172,7 +172,7 @@ The container runs as `appuser` (configurable via `APP_UID`/`APP_GID`). No proce
 | Pin a known-good release | `UVR5_GIT_REF=v1.0.0` for reproducible builds |
 | Pre-download models | Place `.pth` files in `HOST_MODELS` before first run |
 | Use pip cache volume | `HOST_PIP_CACHE` avoids re-downloading packages on rebuild |
-| Precompiled bytecode | Enabled by default — PyTorch/Gradio `.pyc` files are generated at build time |
+| Precompiled bytecode | Enabled by default - PyTorch/Gradio `.pyc` files are generated at build time |
 
 ## Troubleshooting
 
@@ -180,7 +180,7 @@ The container runs as `appuser` (configurable via `APP_UID`/`APP_GID`). No proce
 ```bash
 ./run-quikuvr5.sh preflight
 ```
-This will audit all host dependencies, Docker access, GPU stack, disk space, directory permissions, and image status — with actionable fix recommendations for every issue found.
+This will audit all host dependencies, Docker access, GPU stack, disk space, directory permissions, and image status - with actionable fix recommendations for every issue found.
 
 ### Container won't start / keeps restarting
 ```bash
@@ -212,6 +212,43 @@ sudo chown -R $(id -u):$(id -g) /data/uvr5/
 sudo usermod -aG docker $(whoami)
 newgrp docker
 ```
+
+## Included Toolkit
+
+The `toolkit/` directory contains standalone utility scripts for audio processing workflows.
+
+### Audio Conversion Toolkit
+
+`toolkit/audio-convert.sh` - Convert between video/audio formats with configurable encoding profiles.
+
+```bash
+# Run preflight audit
+./toolkit/audio-convert.sh preflight
+
+# Convert MP4 video to MP3 V0
+./toolkit/audio-convert.sh toolkit/audio-convert.sh video.mp4
+
+# Convert WAV to MP3 320 CBR
+./toolkit/audio-convert.sh --profile mp3-320 vocals.wav
+
+# Convert MP3 to lossless WAV
+./toolkit/audio-convert.sh --profile wav-hq song.mp3
+
+# Batch convert UVR5 output folder
+./toolkit/audio-convert.sh --batch /data/uvr5/outputs/ --profile mp3-v0 --output /data/uvr5/final/
+
+# List all encoding profiles
+./toolkit/audio-convert.sh --list-profiles
+```
+
+**Features:**
+- 10 built-in profiles: `mp3-v0`, `mp3-v2`, `mp3-320`, `mp3-192`, `mp3-128`, `mp3-mono`, `wav-cd`, `wav-hq`, `wav-32`, `wav-mono`
+- Batch conversion with `--batch` and `--recursive`
+- Full preflight audit (ffmpeg, encoders, decoders, profiles, disk space, permissions)
+- Dry-run mode, overwrite control, custom output directory
+- Custom profiles via `toolkit/profiles.conf`
+
+See [`toolkit/README.md`](toolkit/README.md) for full documentation.
 
 ## License
 
