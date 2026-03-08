@@ -1,0 +1,72 @@
+# ============================================================
+# Quikuvr5 - Docker UVR5 Quikseries — Docker Compose
+# ============================================================
+#
+# Usage:
+#   docker compose up -d          # start
+#   docker compose down            # stop
+#   docker compose logs -f uvr5   # follow logs
+#   docker compose build           # rebuild image
+#
+# GPU note: the deploy.resources block requires the NVIDIA Container Toolkit
+# and Docker Compose v2+ (docker compose, not docker-compose).
+# ============================================================
+
+services:
+
+  uvr5:
+    container_name: ${CONTAINER_NAME}
+    image: ${IMAGE_NAME}
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        UID: ${APP_UID}
+        GID: ${APP_GID}
+        ENABLE_BUILD_TOOLS: ${ENABLE_BUILD_TOOLS}
+        GIT_REPO: ${UVR5_GIT_REPO:-https://github.com/Eddycrack864/UVR5-UI.git}
+        GIT_REF: ${UVR5_GIT_REF:-}
+
+    # Only pass what the container actually needs (not host paths)
+    environment:
+      - UVR_PORT=${UVR_PORT}
+      - SKIP_RUNTIME_VALIDATION=${SKIP_RUNTIME_VALIDATION:-false}
+
+    ports:
+      - "${BIND_ADDRESS:-0.0.0.0}:${UVR_PORT}:${UVR_PORT}"
+
+    volumes:
+      - ${HOST_MODELS}:/data/models
+      - ${HOST_INPUTS}:/data/inputs
+      - ${HOST_OUTPUTS}:/data/outputs
+      - ${HOST_CACHE}:/data/cache
+      - ${HOST_PIP_CACHE}:/data/pip-cache
+      - ${HOST_WHEELS}:/data/wheels
+
+    # GPU support — requires NVIDIA Container Toolkit
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+        limits:
+          memory: 16g
+          cpus: "8"
+
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:${UVR_PORT}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s

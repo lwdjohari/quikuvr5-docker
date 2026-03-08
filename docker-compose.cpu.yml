@@ -1,0 +1,20 @@
+# ============================================================
+# Quikuvr5 - Docker UVR5 Quikseries — CPU-only override
+# ============================================================
+#
+# Usage (CPU-only, no GPU):
+#   docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
+#
+# This override removes the GPU reservation from the base compose file.
+# ============================================================
+
+services:
+
+  uvr5:
+    deploy:
+      resources:
+        reservations:
+          devices: []
+        limits:
+          memory: 8g
+          cpus: "4"

@@ -1,0 +1,17 @@
+# ============================================================
+# Quikuvr5 - Docker UVR5 Quikseries — Docker build context exclusions
+# ============================================================
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+LICENSE
+docker-compose*.yml
+.dockerignore
+__pycache__
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db
