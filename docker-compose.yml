@@ -44,6 +44,7 @@ services:
       - ${HOST_INPUTS}:/data/inputs
       - ${HOST_OUTPUTS}:/data/outputs
       - ${HOST_CACHE}:/data/cache
+      - ${HOST_CONFIG}:/data/config
       - ${HOST_PIP_CACHE}:/data/pip-cache
 
     # GPU support — requires NVIDIA Container Toolkit

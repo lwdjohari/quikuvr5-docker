@@ -158,7 +158,7 @@ validate_env() {
   local required_vars=(
     IMAGE_NAME CONTAINER_NAME UVR_PORT USE_GPU ENABLE_BUILD_TOOLS
     APP_UID APP_GID
-    HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE
+    HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_CONFIG HOST_PIP_CACHE
   )
 
   for v in "${required_vars[@]}"; do
@@ -203,7 +203,7 @@ validate_env() {
   done
 
   # Host paths must be absolute
-  for pvar in HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE; do
+  for pvar in HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_CONFIG HOST_PIP_CACHE; do
     local val="${!pvar:-}"
     if [ -n "${val}" ] && [[ "${val}" != /* ]]; then
       warn "${pvar} must be an absolute path, got: '${val}'"
@@ -232,7 +232,7 @@ validate_env() {
 # HOST DIRECTORY PREPARATION
 # ============================================================
 prepare_dirs() {
-  local dir_vars=(HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE)
+  local dir_vars=(HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_CONFIG HOST_PIP_CACHE)
 
   for dvar in "${dir_vars[@]}"; do
     local d="${!dvar}"
@@ -311,6 +311,7 @@ build_volume_args() {
     -v "${HOST_INPUTS}:/data/inputs"
     -v "${HOST_OUTPUTS}:/data/outputs"
     -v "${HOST_CACHE}:/data/cache"
+    -v "${HOST_CONFIG}:/data/config"
     -v "${HOST_PIP_CACHE}:/data/pip-cache"
   )
 }
@@ -437,6 +438,7 @@ cmd_check() {
   echo "  Inputs:      ${HOST_INPUTS}"
   echo "  Outputs:     ${HOST_OUTPUTS}"
   echo "  Cache:       ${HOST_CACHE}"
+  echo "  Config:      ${HOST_CONFIG}"
   echo "  Pip cache:   ${HOST_PIP_CACHE}"
   echo
 }
@@ -496,12 +498,13 @@ cmd_run() {
   local -a vol_args=()
   build_volume_args vol_args
 
-  log "Starting ${CONTAINER_NAME} interactively (port ${UVR_PORT}, Ctrl+C to stop)"
+  local bind="${BIND_ADDRESS:-127.0.0.1}"
+  log "Starting ${CONTAINER_NAME} interactively (${bind}:${UVR_PORT}, Ctrl+C to stop)"
   ${DOCKER} run -it --rm \
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
-    -p "${UVR_PORT}:${UVR_PORT}" \
+    -p "${bind}:${UVR_PORT}:${UVR_PORT}" \
     "${vol_args[@]}" \
     --name "${CONTAINER_NAME}" \
     "${IMAGE_NAME}" start
@@ -519,18 +522,19 @@ cmd_start() {
   local -a vol_args=()
   build_volume_args vol_args
 
-  log "Starting ${CONTAINER_NAME} detached (port ${UVR_PORT})"
+  local bind="${BIND_ADDRESS:-127.0.0.1}"
+  log "Starting ${CONTAINER_NAME} detached (${bind}:${UVR_PORT})"
   ${DOCKER} run -d \
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
-    -p "${UVR_PORT}:${UVR_PORT}" \
+    -p "${bind}:${UVR_PORT}:${UVR_PORT}" \
     "${vol_args[@]}" \
     --restart unless-stopped \
     --name "${CONTAINER_NAME}" \
     "${IMAGE_NAME}" start
 
-  log "Container started - access UI at http://localhost:${UVR_PORT}"
+  log "Container started - access UI at http://${bind}:${UVR_PORT}"
   log "View logs: ./run-quikuvr5.sh logs"
 }
 

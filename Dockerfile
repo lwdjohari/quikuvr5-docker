@@ -68,6 +68,7 @@ RUN mkdir -p \
     /data/inputs \
     /data/outputs \
     /data/cache \
+    /data/config \
     /data/pip-cache \
  && chown -R "${UID}:${GID}" /opt/UVR5-UI /data
 

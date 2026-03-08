@@ -85,7 +85,7 @@ print('Runtime import validation passed')
 fi
 
 # -------- STORAGE VALIDATION --------
-for d in /data/models /data/inputs /data/outputs /data/cache /data/pip-cache; do
+for d in /data/models /data/inputs /data/outputs /data/cache /data/config /data/pip-cache; do
   if [ ! -d "${d}" ]; then
     warn "Missing runtime dir, creating: ${d}"
     mkdir -p "${d}" 2>/dev/null || warn "Cannot create ${d} (read-only mount?)"
@@ -94,6 +94,48 @@ for d in /data/models /data/inputs /data/outputs /data/cache /data/pip-cache; do
     warn "Runtime dir not writable: ${d}"
   fi
 done
+
+# -------- PERSISTENT CONFIG --------
+# Persist config.json and default_settings.json to /data/config so theme,
+# language, and model settings survive container recreation (stop → start).
+CONFIG_DIR="/data/config"
+ASSETS_DIR="${UVR_HOME}/assets"
+
+for cfg in config.json default_settings.json; do
+  src="${ASSETS_DIR}/${cfg}"
+  dst="${CONFIG_DIR}/${cfg}"
+
+  # First run: copy image defaults to the persistent volume
+  if [ ! -f "${dst}" ] && [ -f "${src}" ]; then
+    cp "${src}" "${dst}"
+    log "Copied default ${cfg} to persistent config volume"
+  fi
+
+  # Replace the in-container file with a symlink to the persistent copy
+  if [ -f "${dst}" ]; then
+    rm -f "${src}"
+    ln -s "${dst}" "${src}"
+    log "Linked ${cfg} → ${dst}"
+  fi
+done
+
+# -------- PERSISTENT HF / TORCH HUB CACHE --------
+# Gradio downloads themes (e.g. NoCrypt/miku) to ~/.cache/huggingface/.
+# Torch hub may also cache models here. Symlink to /data/cache so these
+# survive container recreation and avoid re-downloading on every start.
+USER_CACHE="/home/appuser/.cache"
+if [ -d "/data/cache" ] && [ -w "/data/cache" ]; then
+  # Move any existing cache contents to the persistent volume
+  if [ -d "${USER_CACHE}" ] && [ ! -L "${USER_CACHE}" ]; then
+    cp -a "${USER_CACHE}/." /data/cache/ 2>/dev/null || true
+    rm -rf "${USER_CACHE}"
+  fi
+  # Create symlink: ~/.cache → /data/cache
+  if [ ! -L "${USER_CACHE}" ]; then
+    ln -s /data/cache "${USER_CACHE}"
+    log "Linked ~/.cache → /data/cache"
+  fi
+fi
 
 # -------- GPU VALIDATION --------
 if command -v nvidia-smi >/dev/null 2>&1; then

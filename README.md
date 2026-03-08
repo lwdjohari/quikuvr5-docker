@@ -75,6 +75,7 @@ All configuration is done via the `.env` file. Copy `.env.example` and adjust:
 | `HOST_INPUTS` | `/data/uvr5/inputs` | Host path for input audio |
 | `HOST_OUTPUTS` | `/data/uvr5/outputs` | Host path for separated audio |
 | `HOST_CACHE` | `/data/uvr5/cache` | Host path for app cache |
+| `HOST_CONFIG` | `/data/uvr5/config` | Host path for persistent settings (theme, language, model params) |
 | `HOST_PIP_CACHE` | `/data/uvr5/pip-cache` | Host path for pip cache (used by `docker exec ... pip install`) |
 
 > **Important:** `APP_UID`/`APP_GID` are used instead of `UID`/`GID` because `$UID` is a read-only bash built-in.
@@ -141,6 +142,7 @@ The entrypoint accepts these commands:
 ├── inputs/      ← Audio files to process
 ├── outputs/     ← Separated audio results
 ├── cache/       ← Application cache
+├── config/      ← Persistent settings (config.json, default_settings.json)
 └── pip-cache/   ← pip download cache (for runtime `pip install` via exec)
 ```
 
