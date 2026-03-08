@@ -23,6 +23,8 @@ LABEL org.opencontainers.image.source="https://github.com/lwdjohari/quikuvr5-doc
 ENV DEBIAN_FRONTEND=noninteractive
 ENV UVR_HOME=/opt/UVR5-UI
 ENV UVR_ENV=/opt/UVR5-UI/env
+# Runtime pip cache dir — only used if someone runs `docker exec ... pip install`
+# Build-time pip caching is handled by BuildKit --mount=type=cache (never stored in image)
 ENV PIP_CACHE_DIR=/data/pip-cache
 ENV PYTHONUNBUFFERED=1
 ENV PATH="${UVR_ENV}/bin:${PATH}"
@@ -67,7 +69,6 @@ RUN mkdir -p \
     /data/outputs \
     /data/cache \
     /data/pip-cache \
-    /data/wheels \
  && chown -R "${UID}:${GID}" /opt/UVR5-UI /data
 
 # -------- SWITCH TO APPUSER --------
@@ -85,7 +86,8 @@ RUN echo "Cloning from: ${GIT_REPO}" \
       && echo "Pinned to: $(git log -1 --oneline)" ; \
     else \
       git clone --depth 1 "${GIT_REPO}" "${UVR_HOME}" ; \
-    fi
+    fi \
+ && rm -rf "${UVR_HOME}/.git"
 
 # -------- PYTHON VENV & DEPENDENCIES --------
 # Use repo-local env because app.py checks ./env and expects env/bin/audio-separator on Linux

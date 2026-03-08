@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 # ============================================================
 #  Quikuvr5 - Docker UVR5 Quikseries Controller
-#  Ultimate Vocal Remover 5 — Production CLI
+#  Ultimate Vocal Remover 5 - Production CLI
 # ============================================================
 #
 #  Single entry point for building, running, and managing the
@@ -48,7 +48,7 @@ hint() { printf '        ↳ fix: %s\n' "$*" >&2; }
 # ============================================================
 ENV_FILE="${SCRIPT_DIR}/.env"
 if [ ! -f "${ENV_FILE}" ]; then
-  fail ".env not found — run:  cp .env.example .env  then edit it"
+  fail ".env not found - run:  cp .env.example .env  then edit it"
 fi
 
 set -a
@@ -71,9 +71,9 @@ check_cmd() {
   fi
   local msg="Missing command: ${cmd} (${purpose})"
   if [ -n "${install_hint}" ]; then
-    msg="${msg} — install: ${install_hint}"
+    msg="${msg} - install: ${install_hint}"
   else
-    msg="${msg} — install: sudo apt install ${pkg}  OR  sudo dnf install ${pkg}"
+    msg="${msg} - install: sudo apt install ${pkg}  OR  sudo dnf install ${pkg}"
   fi
   if [ "${purpose}" = "optional" ]; then
     PREFLIGHT_WARNINGS+=("${msg}")
@@ -95,9 +95,9 @@ check_host_commands() {
   check_cmd "curl"      "curl"       "required for healthchecks" || ok=false
   check_cmd "git"       "git"        "required for clone operations" || ok=false
 
-  # Docker — special handling
+  # Docker - special handling
   if ! command -v docker >/dev/null 2>&1; then
-    PREFLIGHT_ERRORS+=("Docker not installed — see https://docs.docker.com/engine/install/")
+    PREFLIGHT_ERRORS+=("Docker not installed - see https://docs.docker.com/engine/install/")
     ok=false
   fi
 
@@ -126,7 +126,7 @@ detect_docker() {
       echo "sudo docker"
       return 0
     fi
-    # Interactive sudo — test it, might prompt
+    # Interactive sudo - test it, might prompt
     if sudo docker info >/dev/null 2>&1; then
       echo "sudo docker"
       return 0
@@ -149,7 +149,7 @@ init_docker() {
 }
 
 # ============================================================
-# ENV VALIDATION  (strict — fail fast on bad config)
+# ENV VALIDATION  (strict - fail fast on bad config)
 # ============================================================
 validate_env() {
   local errors=0
@@ -158,13 +158,13 @@ validate_env() {
   local required_vars=(
     IMAGE_NAME CONTAINER_NAME UVR_PORT USE_GPU ENABLE_BUILD_TOOLS
     APP_UID APP_GID
-    HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE HOST_WHEELS
+    HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE
   )
 
   for v in "${required_vars[@]}"; do
     if [ -z "${!v:-}" ]; then
       warn ".env variable missing or empty: ${v}"
-      hint "Add ${v}=<value> to .env — see .env.example"
+      hint "Add ${v}=<value> to .env - see .env.example"
       (( errors++ ))
     fi
   done
@@ -203,11 +203,11 @@ validate_env() {
   done
 
   # Host paths must be absolute
-  for pvar in HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE HOST_WHEELS; do
+  for pvar in HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE; do
     local val="${!pvar:-}"
     if [ -n "${val}" ] && [[ "${val}" != /* ]]; then
       warn "${pvar} must be an absolute path, got: '${val}'"
-      hint "Use full path like /data/uvr5/models — no relative paths or \${VAR} interpolation"
+      hint "Use full path like /data/uvr5/models - no relative paths or \${VAR} interpolation"
       (( errors++ ))
     fi
   done
@@ -222,7 +222,7 @@ validate_env() {
   fi
 
   if (( errors > 0 )); then
-    fail "${errors} configuration error(s) found — fix .env and retry"
+    fail "${errors} configuration error(s) found - fix .env and retry"
   fi
 
   log "Environment validation passed (${#required_vars[@]} variables OK)"
@@ -232,7 +232,7 @@ validate_env() {
 # HOST DIRECTORY PREPARATION
 # ============================================================
 prepare_dirs() {
-  local dir_vars=(HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE HOST_WHEELS)
+  local dir_vars=(HOST_MODELS HOST_INPUTS HOST_OUTPUTS HOST_CACHE HOST_PIP_CACHE)
 
   for dvar in "${dir_vars[@]}"; do
     local d="${!dvar}"
@@ -263,7 +263,7 @@ validate_gpu_host() {
     return 0
   fi
 
-  log "GPU mode enabled — checking host NVIDIA stack"
+  log "GPU mode enabled - checking host NVIDIA stack"
 
   # nvidia-smi
   if ! command -v nvidia-smi >/dev/null 2>&1; then
@@ -274,7 +274,7 @@ validate_gpu_host() {
     return 1
   fi
 
-  log "nvidia-smi found — querying GPU:"
+  log "nvidia-smi found - querying GPU:"
   nvidia-smi --query-gpu=index,name,driver_version,memory.total,temperature.gpu \
     --format=csv,noheader 2>/dev/null || warn "nvidia-smi query failed"
 
@@ -312,7 +312,6 @@ build_volume_args() {
     -v "${HOST_OUTPUTS}:/data/outputs"
     -v "${HOST_CACHE}:/data/cache"
     -v "${HOST_PIP_CACHE}:/data/pip-cache"
-    -v "${HOST_WHEELS}:/data/wheels"
   )
 }
 
@@ -323,7 +322,7 @@ build_volume_args() {
 cmd_preflight() {
   echo
   echo "============================================================"
-  echo " UVR5 Preflight — Host Dependency & Configuration Audit"
+  echo " UVR5 Preflight - Host Dependency & Configuration Audit"
   echo "============================================================"
   echo
 
@@ -347,7 +346,7 @@ cmd_preflight() {
     compose_version="$(${DOCKER} compose version --short 2>/dev/null || echo "unknown")"
     log "Docker Compose version: ${compose_version}"
   else
-    PREFLIGHT_WARNINGS+=("Docker Compose v2 not found — 'docker compose' commands won't work")
+    PREFLIGHT_WARNINGS+=("Docker Compose v2 not found - 'docker compose' commands won't work")
   fi
 
   # 3. Env validation
@@ -386,7 +385,7 @@ cmd_preflight() {
     img_size=$(( img_size / 1024 / 1024 ))
     log "Image '${IMAGE_NAME}' found (${img_size}MB)"
   else
-    PREFLIGHT_WARNINGS+=("Image '${IMAGE_NAME}' not found — run: ./run-quikuvr5.sh build")
+    PREFLIGHT_WARNINGS+=("Image '${IMAGE_NAME}' not found - run: ./run-quikuvr5.sh build")
   fi
 
   # -------- SUMMARY --------
@@ -410,7 +409,7 @@ cmd_preflight() {
       echo "   • ${e}"
     done
     echo
-    fail "Preflight failed with ${#PREFLIGHT_ERRORS[@]} error(s) — fix the above and re-run"
+    fail "Preflight failed with ${#PREFLIGHT_ERRORS[@]} error(s) - fix the above and re-run"
   fi
 
   echo
@@ -439,7 +438,6 @@ cmd_check() {
   echo "  Outputs:     ${HOST_OUTPUTS}"
   echo "  Cache:       ${HOST_CACHE}"
   echo "  Pip cache:   ${HOST_PIP_CACHE}"
-  echo "  Wheels:      ${HOST_WHEELS}"
   echo
 }
 
@@ -529,7 +527,7 @@ cmd_start() {
     --name "${CONTAINER_NAME}" \
     "${IMAGE_NAME}" start
 
-  log "Container started — access UI at http://localhost:${UVR_PORT}"
+  log "Container started - access UI at http://localhost:${UVR_PORT}"
   log "View logs: ./run-quikuvr5.sh logs"
 }
 
@@ -541,7 +539,7 @@ cmd_stop() {
 cmd_restart() {
   log "Restarting ${CONTAINER_NAME}..."
   ${DOCKER} restart "${CONTAINER_NAME}" >/dev/null 2>&1 && log "Restarted" || {
-    warn "Container not running — starting fresh"
+    warn "Container not running - starting fresh"
     cmd_start
   }
 }
@@ -552,7 +550,7 @@ cmd_logs() {
 
 cmd_shell() {
   if ! ${DOCKER} ps --format '{{.Names}}' | grep -qx "${CONTAINER_NAME}"; then
-    fail "Container '${CONTAINER_NAME}' is not running — start it first"
+    fail "Container '${CONTAINER_NAME}' is not running - start it first"
   fi
   ${DOCKER} exec -it "${CONTAINER_NAME}" /bin/bash
 }
@@ -624,7 +622,7 @@ cmd_help() {
 
 echo "============================================================"
 echo " Quikuvr5 - Docker UVR5 Quikseries Controller  v${SCRIPT_VERSION}"
-echo " Ultimate Vocal Remover — Production CLI"
+echo " Ultimate Vocal Remover - Production CLI"
 echo "============================================================"
 
 # ============================================================

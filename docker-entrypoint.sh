@@ -80,7 +80,7 @@ print('Runtime import validation passed')
 fi
 
 # -------- STORAGE VALIDATION --------
-for d in /data/models /data/inputs /data/outputs /data/cache /data/pip-cache /data/wheels; do
+for d in /data/models /data/inputs /data/outputs /data/cache /data/pip-cache; do
   if [ ! -d "${d}" ]; then
     warn "Missing runtime dir, creating: ${d}"
     mkdir -p "${d}" 2>/dev/null || warn "Cannot create ${d} (read-only mount?)"
