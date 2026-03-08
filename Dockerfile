@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ============================================================
 # Quikuvr5 - Docker UVR5 Quikseries Image
 # Ultimate Vocal Remover 5 — Gradio WebUI
@@ -58,6 +59,22 @@ RUN if [ "${ENABLE_BUILD_TOOLS}" = "true" ]; then \
 RUN groupadd -g "${GID}" appuser \
  && useradd -m -u "${UID}" -g "${GID}" -s /bin/bash appuser
 
+# -------- DATA DIRECTORIES (as root, then hand off) --------
+RUN mkdir -p \
+    /opt/UVR5-UI \
+    /data/models \
+    /data/inputs \
+    /data/outputs \
+    /data/cache \
+    /data/pip-cache \
+    /data/wheels \
+ && chown -R "${UID}:${GID}" /opt/UVR5-UI /data
+
+# -------- SWITCH TO APPUSER --------
+# Clone, venv, and pip install all run as appuser so every file
+# is created with the correct ownership — no chown needed later.
+USER appuser
+
 # -------- CLONE UVR5 REPO --------
 WORKDIR /opt
 RUN echo "Cloning from: ${GIT_REPO}" \
@@ -72,11 +89,27 @@ RUN echo "Cloning from: ${GIT_REPO}" \
 
 # -------- PYTHON VENV & DEPENDENCIES --------
 # Use repo-local env because app.py checks ./env and expects env/bin/audio-separator on Linux
+#
+# Split into 3 layers so a failed requirements.txt install doesn't
+# force re-downloading pip/setuptools on retry. BuildKit cache mount
+# keeps pip's temp/download cache on the host — failed builds don't
+# pollute container disk and retries reuse already-downloaded packages.
 WORKDIR "${UVR_HOME}"
+
+# Layer 1: Create venv (tiny, almost never changes)
 RUN python3 -m venv "${UVR_ENV}"
 
-RUN "${UVR_ENV}/bin/pip" install --no-cache-dir --upgrade pip setuptools wheel \
- && "${UVR_ENV}/bin/pip" install --no-cache-dir -r requirements.txt
+# Layer 2: Upgrade pip tooling (cached separately)
+RUN --mount=type=cache,target=/tmp/pip-cache,uid=${UID},gid=${GID} \
+    "${UVR_ENV}/bin/pip" install \
+      --cache-dir /tmp/pip-cache \
+      --upgrade pip setuptools wheel
+
+# Layer 3: Install app requirements (the big one — cached across retries)
+RUN --mount=type=cache,target=/tmp/pip-cache,uid=${UID},gid=${GID} \
+    "${UVR_ENV}/bin/pip" install \
+      --cache-dir /tmp/pip-cache \
+      -r requirements.txt
 
 # -------- BUILD-TIME VALIDATION --------
 RUN set -e \
@@ -90,6 +123,9 @@ RUN set -e \
  && test -x "${UVR_ENV}/bin/audio-separator" \
  && echo "Build-time file validation passed"
 
+# -------- SWITCH BACK TO ROOT for COPY & final setup --------
+USER root
+
 COPY validate_imports.py /tmp/validate_imports.py
 RUN "${UVR_ENV}/bin/python" /tmp/validate_imports.py && rm -f /tmp/validate_imports.py
 
@@ -98,21 +134,6 @@ RUN "${UVR_ENV}/bin/python" app.py --help > /tmp/uvr_help.txt 2>&1 \
  && grep -q -- "--share" /tmp/uvr_help.txt \
  && rm -f /tmp/uvr_help.txt \
  && echo "Build-time app.py CLI validation passed"
-
-# -------- DATA DIRECTORIES --------
-RUN mkdir -p \
-    /data/models \
-    /data/inputs \
-    /data/outputs \
-    /data/cache \
-    /data/pip-cache \
-    /data/wheels
-
-# Only chown /data (small). UVR_HOME is large — use find to fix only
-# ownership mismatches instead of duplicating the entire tree in a new layer.
-RUN chown -R "${UID}:${GID}" /data \
- && chown "${UID}:${GID}" "${UVR_HOME}" \
- && find "${UVR_HOME}" -not -user "${UID}" -exec chown "${UID}:${GID}" {} + 2>/dev/null || true
 
 # Precompile bytecode for faster startup (PyTorch, Gradio, etc.)
 RUN "${UVR_ENV}/bin/python" -m compileall -q "${UVR_ENV}/lib" 2>/dev/null || true
