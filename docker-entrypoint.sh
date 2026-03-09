@@ -35,6 +35,8 @@ trap 'rc=$?; warn "Entrypoint failed with exit code ${rc}"; print_hint; exit ${r
 echo "============================================================"
 echo " Quikuvr5 - Docker UVR5 Quikseries - Container Runtime"
 echo "============================================================"
+echo "Linggawasistha Djohari. Bad Harmony, 2026."
+echo
 
 # -------- ENSURE WORKDIR --------
 cd "${UVR_HOME}" || fail "Cannot cd to ${UVR_HOME}"

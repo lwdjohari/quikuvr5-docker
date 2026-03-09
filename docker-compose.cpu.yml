@@ -1,7 +1,7 @@
 # ============================================================
 # Quikuvr5 - Docker UVR5 Quikseries — CPU-only override
 # ============================================================
-#
+# Linggawasistha Djohari. Bad Harmony, 2026.
 # Usage (CPU-only, no GPU):
 #   docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d
 #

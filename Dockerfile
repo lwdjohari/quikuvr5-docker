@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # ============================================================
 # Quikuvr5 - Docker UVR5 Quikseries Image
-# Ultimate Vocal Remover 5 — Gradio WebUI
+# Ultimate Vocal Remover 5 - Gradio WebUI
 # ============================================================
 FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-runtime
 
@@ -15,7 +15,7 @@ ARG GIT_REF=
 ARG GIT_REPO=https://github.com/Eddycrack864/UVR5-UI.git
 
 LABEL maintainer="lwdjohari"
-LABEL description="UVR5 Industrial — Ultimate Vocal Remover WebUI"
+LABEL description="Quikuvr5 - UVR5 Ultimate Vocal Remover WebUI"
 LABEL version="1.0.0"
 LABEL org.opencontainers.image.source="https://github.com/lwdjohari/quikuvr5-docker"
 

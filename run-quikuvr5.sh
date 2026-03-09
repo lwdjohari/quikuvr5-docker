@@ -5,7 +5,7 @@ set -Eeuo pipefail
 #  Quikuvr5 - Docker UVR5 Quikseries Controller
 #  Ultimate Vocal Remover 5 - Production CLI
 # ============================================================
-#
+#  Linggawasistha Djohari. Bad Harmony, 2026.
 #  Single entry point for building, running, and managing the
 #  UVR5 Docker container. Supports both rootless Docker and
 #  sudo-based Docker access.
@@ -590,7 +590,8 @@ cmd_help() {
   echo
   echo "Quikuvr5 - Docker UVR5 Quikseries Controller v${SCRIPT_VERSION}"
   echo "======================================================"
-  echo
+  echo "Linggawasistha Djohari. Bad Harmony, 2026."
+  echo 
   echo "Usage:  ./run-quikuvr5.sh <command>"
   echo
   echo "Setup & Diagnostics:"
