@@ -290,6 +290,11 @@ download_model() {
     local file_lines total_files=0 downloaded=0 skipped=0 failed=0
     file_lines="$(model_files "$model_id")"
 
+    if [[ -z "$file_lines" ]]; then
+        warn "No files found for model ID ${model_id}"
+        return 1
+    fi
+
     while IFS='|' read -r url filename; do
         total_files=$(( total_files + 1 ))
         local dest_file="${dest_dir}/${filename}"
@@ -335,8 +340,9 @@ download_model() {
             downloaded=$(( downloaded + 1 ))
             ok "Done: ${filename}"
         else
+            local aria_rc=$?
             failed=$(( failed + 1 ))
-            err "Failed: ${filename} (exit $?)"
+            err "Failed: ${filename} (exit ${aria_rc})"
         fi
     done <<< "$file_lines"
 
@@ -391,14 +397,21 @@ download_batch_parallel() {
     # Build aria2 input file
     local input_file
     input_file="$(mktemp /tmp/uvr5-dl-XXXXXX.txt)"
-    trap "rm -f '$input_file'" EXIT
+    # Clean up temp file on any exit (trap uses the expanded path, not variable)
+    trap "rm -f '${input_file}'" EXIT
 
     local total_files=0
     for mid in "${model_ids[@]}"; do
         local dest_dir="${MODELS_DIR}"
         mkdir -p "$dest_dir"
 
+        local _files
+        _files="$(model_files "$mid")"
+        [[ -z "$_files" ]] && continue    # skip models with no files
+
         while IFS='|' read -r url filename; do
+            [[ -z "$url" ]] && continue   # guard: empty line
+
             local dest_file="${dest_dir}/${filename}"
 
             # Conflict check in parallel mode — only skip or overwrite
@@ -428,11 +441,13 @@ download_batch_parallel() {
             echo "  dir=${dest_dir}" >> "$input_file"
             echo "  out=${filename}" >> "$input_file"
             total_files=$(( total_files + 1 ))
-        done <<< "$(model_files "$mid")"
+        done <<< "$_files"
     done
 
     if (( total_files == 0 )); then
         warn "No files to download (all skipped or empty)"
+        rm -f "$input_file"
+        trap - EXIT
         return 0
     fi
 
@@ -441,6 +456,8 @@ download_batch_parallel() {
     if [[ "$DRY_RUN" == true ]]; then
         info "[DRY-RUN] aria2 input file:"
         cat "$input_file"
+        rm -f "$input_file"
+        trap - EXIT
         return 0
     fi
 
@@ -594,7 +611,9 @@ prompt_download_selection() {
             # Parse comma/space separated IDs
             local -a ids=()
             local raw="${id_input//,/ }"
-            for token in $raw; do
+            local -a _tokens=()
+            IFS=' ' read -ra _tokens <<< "$raw"
+            for token in "${_tokens[@]}"; do
                 if [[ "$token" =~ ^[0-9]+$ ]]; then
                     ids+=("$token")
                 elif [[ "$token" =~ ^([0-9]+)-([0-9]+)$ ]]; then
@@ -874,33 +893,49 @@ EOF
 
 # ── argument parser ─────────────────────────────────────────────────────────
 main() {
-    local command="${1:-menu}"
-    shift 2>/dev/null || true
-
-    # Parse global flags first from remaining args
+    # Parse ALL flags first, collect positional args separately.
+    # This allows flags before, after, or mixed with the command word.
+    #   ./script --output /dir download --recommended   ✓
+    #   ./script download --output /dir --recommended   ✓
+    #   ./script --output /dir                          ✓  (defaults to menu)
     local dl_mode="" dl_target=""
-    local -a remaining=()
+    local -a positional=()
 
-    while (( $# > 0 )); do
+    while [[ $# -gt 0 ]]; do
         case "$1" in
-            --id)           dl_mode="id";      dl_target="$2"; shift 2 ;;
-            --name)         dl_mode="name";    dl_target="$2"; shift 2 ;;
-            --arch)         dl_mode="arch";    dl_target="$2"; shift 2 ;;
+            --id)           [[ $# -ge 2 ]] || die "--id requires a value"; dl_mode="id";      dl_target="$2"; shift 2 ;;
+            --name)         [[ $# -ge 2 ]] || die "--name requires a value"; dl_mode="name";    dl_target="$2"; shift 2 ;;
+            --arch)         [[ $# -ge 2 ]] || die "--arch requires a value"; dl_mode="arch";    dl_target="$2"; shift 2 ;;
             --recommended)  dl_mode="rec";     shift ;;
             --all)          dl_mode="all";     shift ;;
-            --connections)  CONNECTIONS="$2";   shift 2 ;;
-            --parallel)     PARALLEL="$2";     shift 2 ;;
-            --retries)      MAX_RETRIES="$2";  shift 2 ;;
-            --conflict)     CONFLICT_MODE="$2"; shift 2 ;;
-            --output|--out-dir) MODELS_DIR="$2"; shift 2 ;;
-            --catalog)      CATALOG="$2";      shift 2 ;;
+            --connections)  [[ $# -ge 2 ]] || die "--connections requires a value"; CONNECTIONS="$2";   shift 2 ;;
+            --parallel)     [[ $# -ge 2 ]] || die "--parallel requires a value"; PARALLEL="$2";     shift 2 ;;
+            --retries)      [[ $# -ge 2 ]] || die "--retries requires a value"; MAX_RETRIES="$2";  shift 2 ;;
+            --conflict)     [[ $# -ge 2 ]] || die "--conflict requires a value"; CONFLICT_MODE="$2"; shift 2 ;;
+            --output|--out-dir) [[ $# -ge 2 ]] || die "--output requires a value"; MODELS_DIR="$2"; shift 2 ;;
+            --catalog)      [[ $# -ge 2 ]] || die "--catalog requires a value"; CATALOG="$2";      shift 2 ;;
             --dry-run)      DRY_RUN=true;      shift ;;
             --quiet|-q)     QUIET=true;        shift ;;
             --help|-h)      usage; exit 0 ;;
             --version|-v)   echo "v${VERSION}"; exit 0 ;;
-            *)              remaining+=("$1"); shift ;;
+            -*)             die "Unknown flag: $1 (see --help)" ;;
+            *)              positional+=("$1"); shift ;;
         esac
     done
+
+    # First positional is the command; rest are command-specific args
+    local command="${positional[0]:-}"
+    local -a remaining=()
+    (( ${#positional[@]} > 1 )) && remaining=("${positional[@]:1}")
+
+    # Auto-detect command: if no explicit command, infer from context
+    if [[ -z "$command" ]]; then
+        if [[ -n "$dl_mode" ]]; then
+            command="download"        # flags like --recommended imply download
+        else
+            command="menu"            # bare invocation → interactive menu
+        fi
+    fi
 
     # Route commands
     case "$command" in
@@ -936,6 +971,9 @@ main() {
             local mid="${remaining[0]:-}"
             if [[ -z "$mid" ]]; then
                 die "Usage: ${0##*/} info <model_id>"
+            fi
+            if [[ ! "$mid" =~ ^[0-9]+$ ]]; then
+                die "Model ID must be numeric: ${mid}"
             fi
             preflight_lite
             local detail
