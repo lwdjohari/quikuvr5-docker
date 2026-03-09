@@ -121,6 +121,53 @@ for cfg in config.json default_settings.json; do
   fi
 done
 
+# -------- PERSISTENT MODELS --------
+# UVR5 app.py uses models_dir="./models" (relative to /opt/UVR5-UI/).
+# Replace /opt/UVR5-UI/models/ with a symlink to /data/models/ so downloaded
+# model weights are stored on the host volume and survive container recreation.
+APP_MODELS="${UVR_HOME}/models"
+if [ -d "/data/models" ] && [ -w "/data/models" ]; then
+  if [ -d "${APP_MODELS}" ] && [ ! -L "${APP_MODELS}" ]; then
+    find "${APP_MODELS}" -type f ! -name ".gitkeep" -exec cp -n {} /data/models/ \; 2>/dev/null || true
+    rm -rf "${APP_MODELS}"
+  fi
+  if [ ! -L "${APP_MODELS}" ]; then
+    ln -s /data/models "${APP_MODELS}"
+    log "Linked ./models → /data/models"
+  fi
+fi
+
+# -------- PERSISTENT OUTPUTS --------
+# UVR5 app.py uses out_dir="./outputs" (relative to /opt/UVR5-UI/).
+# Symlink to /data/outputs so separated audio is written to the host volume.
+APP_OUTPUTS="${UVR_HOME}/outputs"
+if [ -d "/data/outputs" ] && [ -w "/data/outputs" ]; then
+  if [ -d "${APP_OUTPUTS}" ] && [ ! -L "${APP_OUTPUTS}" ]; then
+    find "${APP_OUTPUTS}" -type f -exec cp -n {} /data/outputs/ \; 2>/dev/null || true
+    rm -rf "${APP_OUTPUTS}"
+  fi
+  if [ ! -L "${APP_OUTPUTS}" ]; then
+    ln -s /data/outputs "${APP_OUTPUTS}"
+    log "Linked ./outputs → /data/outputs"
+  fi
+fi
+
+# -------- PERSISTENT YOUTUBE DOWNLOADS --------
+# UVR5 app.py downloads YouTube audio to ./ytdl/ (relative to /opt/UVR5-UI/).
+# Symlink to /data/inputs/ytdl so downloads land on the host volume.
+APP_YTDL="${UVR_HOME}/ytdl"
+if [ -d "/data/inputs" ] && [ -w "/data/inputs" ]; then
+  mkdir -p /data/inputs/ytdl 2>/dev/null || true
+  if [ -d "${APP_YTDL}" ] && [ ! -L "${APP_YTDL}" ]; then
+    find "${APP_YTDL}" -type f -exec cp -n {} /data/inputs/ytdl/ \; 2>/dev/null || true
+    rm -rf "${APP_YTDL}"
+  fi
+  if [ ! -L "${APP_YTDL}" ]; then
+    ln -s /data/inputs/ytdl "${APP_YTDL}"
+    log "Linked ./ytdl → /data/inputs/ytdl"
+  fi
+fi
+
 # -------- PERSISTENT HF / TORCH HUB CACHE --------
 # Gradio downloads themes (e.g. NoCrypt/miku) to ~/.cache/huggingface/.
 # Torch hub may also cache models here. Symlink to /data/cache so these
