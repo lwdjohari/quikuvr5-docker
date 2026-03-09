@@ -36,7 +36,8 @@ services:
       # so Docker port mapping can reach it from the host network
       - GRADIO_SERVER_NAME=0.0.0.0
       # Symlinked dirs resolve to /data/* — whitelist them for Gradio file serving
-      - GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp
+      # NOTE: Gradio splits this on commas, NOT colons
+      - GRADIO_ALLOWED_PATHS=/data/outputs,/data/inputs,/data/models,/data/cache,/tmp
 
     ports:
       - "${BIND_ADDRESS:-0.0.0.0}:${UVR_PORT}:${UVR_PORT}"

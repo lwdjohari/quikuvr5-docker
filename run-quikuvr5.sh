@@ -485,7 +485,7 @@ cmd_validate() {
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
-    -e GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp \
+    -e GRADIO_ALLOWED_PATHS=/data/outputs,/data/inputs,/data/models,/data/cache,/tmp \
     -e SKIP_RUNTIME_VALIDATION="${SKIP_RUNTIME_VALIDATION:-false}" \
     "${vol_args[@]}" \
     "${IMAGE_NAME}" validate
@@ -506,7 +506,7 @@ cmd_run() {
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
-    -e GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp \
+    -e GRADIO_ALLOWED_PATHS=/data/outputs,/data/inputs,/data/models,/data/cache,/tmp \
     -e SKIP_RUNTIME_VALIDATION="${SKIP_RUNTIME_VALIDATION:-false}" \
     --shm-size=2g \
     -p "${bind}:${UVR_PORT}:${UVR_PORT}" \
@@ -533,7 +533,7 @@ cmd_start() {
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
-    -e GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp \
+    -e GRADIO_ALLOWED_PATHS=/data/outputs,/data/inputs,/data/models,/data/cache,/tmp \
     -e SKIP_RUNTIME_VALIDATION="${SKIP_RUNTIME_VALIDATION:-false}" \
     --shm-size=2g \
     -p "${bind}:${UVR_PORT}:${UVR_PORT}" \
