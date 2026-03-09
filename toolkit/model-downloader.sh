@@ -43,8 +43,8 @@ banner() {
     cat <<'EOF'
 
     ╔══════════════════════════════════════════════════╗
-    ║       UVR5 Model Downloader v1.0.0              ║
-    ║       Industrial aria2 Batch Downloader         ║
+    ║       UVR5 Model Downloader v1.0.0               ║
+    ║       aria2 Toolkit Batch Downloader             ║
     ╚══════════════════════════════════════════════════╝
 
 EOF
