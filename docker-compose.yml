@@ -35,9 +35,15 @@ services:
       # Gradio binds to 127.0.0.1 by default — must override to 0.0.0.0
       # so Docker port mapping can reach it from the host network
       - GRADIO_SERVER_NAME=0.0.0.0
+      # Symlinked dirs resolve to /data/* — whitelist them for Gradio file serving
+      - GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp
 
     ports:
       - "${BIND_ADDRESS:-0.0.0.0}:${UVR_PORT}:${UVR_PORT}"
+
+    # PyTorch DataLoader workers use /dev/shm for IPC.
+    # Docker default is 64MB which causes "out of shared memory" errors.
+    shm_size: "1gb"
 
     volumes:
       - ${HOST_MODELS}:/data/models

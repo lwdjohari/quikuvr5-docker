@@ -16,6 +16,11 @@ PORT="${UVR_PORT:-7860}"
 # fallback covers `docker run` without compose.
 export GRADIO_SERVER_NAME="${GRADIO_SERVER_NAME:-0.0.0.0}"
 
+# Symlinked dirs resolve to /data/* which Gradio rejects as outside the working
+# directory.  GRADIO_ALLOWED_PATHS whitelists the real targets so the UI can
+# serve output files, cached assets, and model previews.
+export GRADIO_ALLOWED_PATHS="${GRADIO_ALLOWED_PATHS:-/data/outputs:/data/inputs:/data/models:/data/cache:/tmp}"
+
 # -------- LOGGING HELPERS --------
 log()  { printf '[INFO]  %s\n' "$*"; }
 warn() { printf '[WARN]  %s\n' "$*" >&2; }

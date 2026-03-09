@@ -165,7 +165,7 @@ validate_env() {
     if [ -z "${!v:-}" ]; then
       warn ".env variable missing or empty: ${v}"
       hint "Add ${v}=<value> to .env - see .env.example"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     fi
   done
 
@@ -174,11 +174,11 @@ validate_env() {
     if ! [[ "${UVR_PORT}" =~ ^[0-9]+$ ]]; then
       warn "UVR_PORT must be numeric, got: '${UVR_PORT}'"
       hint "Set UVR_PORT to a number between 1024 and 65535"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     elif (( UVR_PORT < 1 || UVR_PORT > 65535 )); then
       warn "UVR_PORT out of range: ${UVR_PORT}"
       hint "Set UVR_PORT between 1 and 65535 (recommended: 1024+)"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     fi
   fi
 
@@ -188,7 +188,7 @@ validate_env() {
     if [ -n "${val}" ] && [[ "${val}" != "true" && "${val}" != "false" ]]; then
       warn "${bvar} must be 'true' or 'false', got: '${val}'"
       hint "Set ${bvar}=true or ${bvar}=false in .env"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     fi
   done
 
@@ -198,7 +198,7 @@ validate_env() {
     if [ -n "${val}" ] && ! [[ "${val}" =~ ^[0-9]+$ ]]; then
       warn "${uvar} must be numeric, got: '${val}'"
       hint "Run 'id -u' and 'id -g' to find correct values"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     fi
   done
 
@@ -208,7 +208,7 @@ validate_env() {
     if [ -n "${val}" ] && [[ "${val}" != /* ]]; then
       warn "${pvar} must be an absolute path, got: '${val}'"
       hint "Use full path like /data/uvr5/models - no relative paths or \${VAR} interpolation"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     fi
   done
 
@@ -217,7 +217,7 @@ validate_env() {
     if [[ ! "${UVR5_GIT_REPO}" =~ ^https?://.*\.git$ ]] && [[ ! "${UVR5_GIT_REPO}" =~ ^git@.*\.git$ ]]; then
       warn "UVR5_GIT_REPO doesn't look like a valid git URL: '${UVR5_GIT_REPO}'"
       hint "Use HTTPS (https://github.com/user/repo.git) or SSH (git@github.com:user/repo.git)"
-      (( errors++ ))
+      errors=$(( errors + 1 ))
     fi
   fi
 
@@ -485,6 +485,8 @@ cmd_validate() {
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
+    -e GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp \
+    -e SKIP_RUNTIME_VALIDATION="${SKIP_RUNTIME_VALIDATION:-false}" \
     "${vol_args[@]}" \
     "${IMAGE_NAME}" validate
 }
@@ -504,6 +506,9 @@ cmd_run() {
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
+    -e GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp \
+    -e SKIP_RUNTIME_VALIDATION="${SKIP_RUNTIME_VALIDATION:-false}" \
+    --shm-size=2g \
     -p "${bind}:${UVR_PORT}:${UVR_PORT}" \
     "${vol_args[@]}" \
     --name "${CONTAINER_NAME}" \
@@ -528,6 +533,9 @@ cmd_start() {
     "${gpu_flags[@]}" \
     -e UVR_PORT="${UVR_PORT}" \
     -e GRADIO_SERVER_NAME=0.0.0.0 \
+    -e GRADIO_ALLOWED_PATHS=/data/outputs:/data/inputs:/data/models:/data/cache:/tmp \
+    -e SKIP_RUNTIME_VALIDATION="${SKIP_RUNTIME_VALIDATION:-false}" \
+    --shm-size=2g \
     -p "${bind}:${UVR_PORT}:${UVR_PORT}" \
     "${vol_args[@]}" \
     --restart unless-stopped \
